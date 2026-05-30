@@ -62,6 +62,8 @@ Nous avons opté pour une approche simple et efficace en utilisant le matériel 
     └── database/           # Scripts de configuration de la base de données
 ```
 
+---
+
 ## 📋 Tâches Minimales à Réaliser
 
 ### 🛰️ Étape 1 : Conception Matérielle (Hardware)
@@ -75,6 +77,8 @@ Nous avons opté pour une approche simple et efficace en utilisant le matériel 
 ### 🗄️ Étape 3 : Backend, Base de données & Notifications
 * [ ] Mettre en place un backend pour la gestion des notifications et la journalisation des événements.*Note : Il est possible de le développer spécifiquement ou d'utiliser des composants logiciels existants.*
 * [ ] S'assurer que les données soient persistées dans une base de données.
+
+---
 
 ## 📐 Conception Matérielle
 
