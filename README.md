@@ -66,7 +66,7 @@ Nous avons opté pour une approche simple et efficace en utilisant le matériel 
 
 ### 🛰️ Étape 1 : Conception Matérielle (Hardware)
 * [ ] Concevoir physiquement le module IoT de développement avec le matériel de prêt.
-* [ ] Concevoir le schematics et le PCB du prototype à l'aide d'un outil d'EDA comme vu en classe (EasyEDA, Altium, Eagle, etc.).
+* [x] Concevoir le schematics et le PCB du prototype à l'aide d'un outil d'EDA comme vu en classe (EasyEDA, Altium, Eagle, etc.).
 
 ### 💻 Étape 2 : Développement du Firmware et Réseau
 * [ ] Développer le firmware du module selon les fonctionnalités requises et/ou proposées.
@@ -75,3 +75,7 @@ Nous avons opté pour une approche simple et efficace en utilisant le matériel 
 ### 🗄️ Étape 3 : Backend, Base de données & Notifications
 * [ ] Mettre en place un backend pour la gestion des notifications et la journalisation des événements.*Note : Il est possible de le développer spécifiquement ou d'utiliser des composants logiciels existants.*
 * [ ] S'assurer que les données soient persistées dans une base de données.
+
+## Conception matérielle
+
+Pour la conception du prototype, nous avons utilisé le logiciel EasyEDA avec lequel on a pu faire à la fois le schematics et le PCB.
