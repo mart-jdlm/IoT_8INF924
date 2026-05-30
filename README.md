@@ -87,7 +87,7 @@ Le câblage a été pensé pour être le plus simple et robuste possible. L'attr
 * **Haut-parleur (FIT0449)** ➔ Broche Digitale **D4** (PWM)
 * **Capteur de Son (DFR0034)** ➔ Broche Analogique **A1**
 
-![Schéma Électronique](./images/schematic.webp)
+![Schéma Électronique](./images/Schematic.webp)
 
 ### 2. Circuit Imprimé (PCB)
 Le routage de la carte a été optimisé pour être le plus compact possible. Nous avons utilisé un routage double face (TopLayer en rouge, BottomLayer en bleu) pour éviter le croisement des pistes. 
