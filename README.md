@@ -76,6 +76,22 @@ Nous avons opté pour une approche simple et efficace en utilisant le matériel 
 * [ ] Mettre en place un backend pour la gestion des notifications et la journalisation des événements.*Note : Il est possible de le développer spécifiquement ou d'utiliser des composants logiciels existants.*
 * [ ] S'assurer que les données soient persistées dans une base de données.
 
-## Conception matérielle
+## 📐 Conception Matérielle
 
-Pour la conception du prototype, nous avons utilisé le logiciel EasyEDA avec lequel on a pu faire à la fois le schematics et le PCB.
+Pour la conception du prototype, nous avons utilisé le logiciel **EasyEDA** afin de réaliser à la fois le schéma logique (Schematics) et le circuit imprimé (PCB). Tous les composants sont alimentés en **3.3V** pour respecter la tension logique de l'Arduino MKR1010.
+
+### 1. Schéma Électronique (Schematic)
+Le câblage a été pensé pour être le plus simple et robuste possible. L'attribution des broches (Pinout) est la suivante :
+* **Bouton Poussoir (DFR0029)** ➔ Broche Digitale **D2**
+* **Capteur Infrarouge (SEN0018)** ➔ Broche Digitale **D3**
+* **Haut-parleur (FIT0449)** ➔ Broche Digitale **D4** (PWM)
+* **Capteur de Son (DFR0034)** ➔ Broche Analogique **A1**
+
+![Schéma Électronique](./images/schematic.webp)
+
+### 2. Circuit Imprimé (PCB)
+Le routage de la carte a été optimisé pour être le plus compact possible. Nous avons utilisé un routage double face (TopLayer en rouge, BottomLayer en bleu) pour éviter le croisement des pistes. 
+
+![Circuit Imprimé (Vue 2D)](./images/PCB.webp)
+
+
