@@ -2,6 +2,7 @@
 # Fichiers de configuration et secrets
 # ==========================================
 .env
+*.h
 
 # ==========================================
 # Environnement virtuel Python

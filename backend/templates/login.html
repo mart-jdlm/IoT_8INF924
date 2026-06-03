@@ -6,7 +6,7 @@
     <title>Connexion - Sonnette IoT</title>
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1746/1746650.png">    
     <style>
-        /* Variables de couleurs pour un look moderne et facile à modifier */
+        /* Palette de couleurs */
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
@@ -27,8 +27,7 @@
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            /* Petit motif de fond discret façon "grille technique" */
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px); /* Motif de grille */
             background-size: 20px 20px;
             display: flex;
             justify-content: center;
@@ -37,6 +36,7 @@
             color: var(--text-main);
         }
 
+        /* Conteneur principal */
         .login-container {
             background: var(--card-bg);
             width: 100%;
@@ -51,7 +51,6 @@
             margin-bottom: 2rem;
         }
 
-        /* Icône SVG dynamique */
         .header svg {
             width: 48px;
             height: 48px;
@@ -93,7 +92,7 @@
             background-color: #f8fafc;
         }
 
-        /* Effet "Glow" bleu quand on clique sur l'input */
+        /* Effet visuel au focus */
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
@@ -119,7 +118,6 @@
             background-color: var(--primary-hover);
         }
 
-        /* Petit effet d'enfoncement au clic */
         .btn-submit:active {
             transform: translateY(2px);
         }

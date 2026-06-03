@@ -10,38 +10,40 @@ import time
 import secrets
 from dotenv import load_dotenv
 
+# Charge les variables du fichier .env
 load_dotenv()
 
 # ==========================================
-# SÉCURITÉ WEB (COOKIES)
+# CONFIGURATION & SÉCURITÉ
 # ==========================================
 
 def verifier_admin(request: Request):
-    # On vérifie si le navigateur possède notre cookie secret
+    """Vérifie la présence et la validité du cookie de session."""
     session = request.cookies.get("session_iot")
     if session != "admin_auth_valide":
-        # S'il n'y a pas de cookie, on renvoie brutalement vers la page de login
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
             headers={"Location": "/login"}
         )
     return True
 
-# Liste stricte des capteurs autorisés
 class SourceCapteur(str, Enum):
+    """Liste stricte des capteurs autorisés pour la validation des requêtes."""
     bouton = "bouton"
     infrarouge = "infrarouge"
     son = "son"
 
 app = FastAPI(title="API Sonnette Intelligente")
-
-# On connecte le dossier "templates"
 templates = Jinja2Templates(directory="templates")
 
+# Initialisation des dossiers et chemins
 os.makedirs("database", exist_ok=True)
 DB_PATH = "database/sonnette.db"
 
-# --- MÉMOIRE GLOBALE ENRICHIE ---
+# ==========================================
+# ÉTAT GLOBAL DU SYSTÈME (MÉMOIRE)
+# ==========================================
+
 etat_systeme = {
     "dernier_contact": time.time(),
     "dernier_envoi_discord": 0,
@@ -57,17 +59,25 @@ etat_systeme = {
         "delai_anti_spam": 30,
         "webhook_discord": os.getenv("URL_DISCORD", ""),
         
-        # --- NOUVEAUX PARAMÈTRES COOL ---
-        "sonnerie_bouton": "2",      # 2 = Carillon par défaut
-        "sonnerie_infrarouge": "1",  # 1 = Police par défaut
-        "sonnerie_son": "0",         # 0 = Silencieux
+        # --- MISE À JOUR DES PROFILS SONORES ---
+        # 0 = Silencieux | 1 = Police | 2 = Carillon | 3 = Incendie 
+        # 4 = Mario      | 5 = Zelda  | 6 = Sci-Fi Robotique
+        "sonnerie_bouton": "4",      # 4 = Pièce Mario par défaut
+        "sonnerie_infrarouge": "6",  # 6 = Robotique par défaut
+        "sonnerie_son": "0",         # 0 = Silencieux par défaut
+        
         "msg_bouton": "Quelqu'un a sonné à la porte !",
         "msg_infrarouge": "Mouvement suspect détecté !",
         "msg_son": "Bruit anormal entendu !"
     }
 }
 
+# ==========================================
+# BASE DE DONNÉES & UTILITAIRES
+# ==========================================
+
 def init_db():
+    """Crée la table des événements si elle n'existe pas."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
@@ -83,7 +93,7 @@ def init_db():
 init_db()
 
 def est_heure_silencieuse():
-    # Le Mode Vacances annule le mode silencieux !
+    """Détermine si le système doit désactiver les notifications sonores/alertes."""
     if etat_systeme["config"]["mode_vacances"]: return False
     if not etat_systeme["config"]["silence_actif"]: return False
     
@@ -98,12 +108,11 @@ def est_heure_silencieuse():
         return False
     
 # ==========================================
-# ROUTES DE CONNEXION / DÉCONNEXION
+# ROUTES : AUTHENTIFICATION
 # ==========================================
 
 @app.get("/login", response_class=HTMLResponse)
 async def page_login(request: Request, erreur: str = None):
-    # Affiche la page HTML. S'il y a un paramètre ?erreur=... dans l'URL, on l'affiche.
     return templates.TemplateResponse(
         request=request, 
         name="login.html", 
@@ -112,35 +121,31 @@ async def page_login(request: Request, erreur: str = None):
 
 @app.post("/login")
 async def traiter_login(username: str = Form(...), password: str = Form(...)):
-    # Tes identifiants (tu peux les changer)
+    """Valide les identifiants et génère le cookie de session."""
     correct_username = secrets.compare_digest(username, os.getenv("LOGIN", ""))
     correct_password = secrets.compare_digest(password, os.getenv("PASSWORD", ""))
 
     if correct_username and correct_password:
-        # Si c'est bon, on prépare une redirection vers l'accueil (Dashboard)
         reponse = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
-        
-        # Le plus important : on dépose un cookie invisible et sécurisé dans le navigateur
         reponse.set_cookie(
             key="session_iot", 
             value="admin_auth_valide", 
-            httponly=True,   # Empêche les scripts JS de voler le cookie
-            max_age=86400    # Le cookie expire dans 24 heures (en secondes)
+            httponly=True,
+            max_age=86400 # Expire dans 24h
         )
         return reponse
     else:
-        # Si c'est faux, on redirige vers le login avec un message d'erreur
         return RedirectResponse(url="/login?erreur=Identifiants incorrects", status_code=status.HTTP_302_FOUND)
 
 @app.get("/logout")
 async def deconnexion():
-    # Pour se déconnecter, on redirige vers le login et on détruit le cookie
+    """Détruit le cookie de session et redirige vers le login."""
     reponse = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     reponse.delete_cookie("session_iot")
     return reponse
 
 # ==========================================
-# ROUTES DES PAGES WEB (JINJA2) - PROTÉGÉES
+# ROUTES : INTERFACE WEB (PROTÉGÉES)
 # ==========================================
 
 @app.get("/", response_class=HTMLResponse)
@@ -156,7 +161,7 @@ async def page_parametres(request: Request, user: str = Depends(verifier_admin))
     return templates.TemplateResponse(request=request, name="parametres.html")
 
 # ==========================================
-# ROUTES DE L'API (DONNÉES)
+# ROUTES : API & COMMUNICATION MATÉRIELLE
 # ==========================================
 
 @app.post("/api/sauvegarder_config")
@@ -171,24 +176,22 @@ def activer_alarme(code: str):
 
 @app.get("/api/check_alarme", response_class=PlainTextResponse)
 def check_alarme(x_api_key: str = Header(None)):
-    # VÉRIFICATION DE SÉCURITÉ
+    """Permet à l'Arduino de récupérer l'état actuel et les consignes."""
     if x_api_key != os.getenv("SECRET_API_KEY", ""):
         raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
     
     etat_systeme["dernier_contact"] = time.time()
     code_manuel = etat_systeme["alarme_code"]
     
-    # On remet à zéro l'alarme manuelle après l'avoir lue
+    # Réinitialisation de l'alarme manuelle après lecture
     if code_manuel != "0":
         etat_systeme["alarme_code"] = "0"
         
     c = etat_systeme["config"]
     
-    # Si c'est l'heure silencieuse, on force tous les capteurs à "0" (silencieux)
     if est_heure_silencieuse():
         return f"{code_manuel}000"
         
-    # Sinon, on envoie la configuration actuelle : ex "0210"
     return f"{code_manuel}{c.get('sonnerie_bouton', '2')}{c.get('sonnerie_infrarouge', '1')}{c.get('sonnerie_son', '0')}"
 
 @app.get("/api/etat")
@@ -204,7 +207,6 @@ def lire_historique_data(limite: int = 50):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Si la limite est supérieure à 0, on limite. Sinon (limite = 0), on prend TOUT.
     if limite > 0:
         cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC LIMIT ?", (limite,))
     else:
@@ -225,25 +227,24 @@ def lire_statistiques():
 
 @app.post("/alerte")
 def recevoir_alerte(source: SourceCapteur, x_api_key: str = Header(None)):
-    # VÉRIFICATION DE SÉCURITÉ MATÉRIELLE
+    """Gère une alerte envoyée par l'Arduino : log en BDD et notification Discord."""
     if x_api_key != os.getenv("SECRET_API_KEY", ""):
         raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
 
-    # On récupère la valeur sous forme de texte ("bouton", "son", etc.)
     source_str = source.value 
-    
     temps_actuel = time.time()
-    etat_systeme["dernier_contact"] = temps_actuel
     maintenant = datetime.now()
     
+    # Mise à jour de l'état et log en base de données
+    etat_systeme["dernier_contact"] = temps_actuel
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO evenements (source, timestamp) VALUES (?, ?)", (source_str, maintenant))
     conn.commit()
     conn.close()
-    en_silence = est_heure_silencieuse()
 
-    # --- LOGIQUE DISCORD ---
+    # Logique d'envoi Discord (anti-spam et heures silencieuses)
+    en_silence = est_heure_silencieuse()
     delai_ecoule = temps_actuel - etat_systeme["dernier_envoi_discord"]
     anti_spam_ok = delai_ecoule >= etat_systeme["config"]["delai_anti_spam"]
     
@@ -256,7 +257,6 @@ def recevoir_alerte(source: SourceCapteur, x_api_key: str = Header(None)):
 
     if not en_silence and autorise_capteur and anti_spam_ok and webhook:
         heure_formatee = maintenant.strftime('%H:%M:%S')
-        # On utilise le message personnalisé !
         msg_custom = etat_systeme["config"].get(f"msg_{source_str}", f"Détection {source_str}")
         
         message = {"content": f"🔔 **Alerte IoT** : {msg_custom} *(à {heure_formatee})*"}
@@ -270,19 +270,20 @@ def recevoir_alerte(source: SourceCapteur, x_api_key: str = Header(None)):
 
 @app.get("/api/kpi")
 def lire_kpi():
+    """Génère les indicateurs clés (KPI) pour le tableau de bord."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # 1. Nombre de détections aujourd'hui
+    # Détections du jour
     aujourd_hui = datetime.now().strftime('%Y-%m-%d')
     cursor.execute("SELECT COUNT(*) FROM evenements WHERE timestamp LIKE ?", (f"{aujourd_hui}%",))
     total_jour = cursor.fetchone()[0]
     
-    # 2. Le dernier événement enregistré
+    # Dernier événement
     cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC LIMIT 1")
     dernier = cursor.fetchone()
     
-    # 3. Le capteur le plus sollicité au total
+    # Capteur le plus sollicité
     cursor.execute("SELECT source FROM evenements GROUP BY source ORDER BY COUNT(*) DESC LIMIT 1")
     top_capteur = cursor.fetchone()
     
