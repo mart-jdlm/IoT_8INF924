@@ -172,7 +172,7 @@ def activer_alarme(code: str):
 @app.get("/api/check_alarme", response_class=PlainTextResponse)
 def check_alarme(x_api_key: str = Header(None)):
     # VÉRIFICATION DE SÉCURITÉ
-    if x_api_key != os.getenv("API_KEY", ""):
+    if x_api_key != os.getenv("SECRET_API_KEY", ""):
         raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
     
     etat_systeme["dernier_contact"] = time.time()
@@ -226,7 +226,7 @@ def lire_statistiques():
 @app.post("/alerte")
 def recevoir_alerte(source: SourceCapteur, x_api_key: str = Header(None)):
     # VÉRIFICATION DE SÉCURITÉ MATÉRIELLE
-    if x_api_key != os.getenv("API_KEY", ""):
+    if x_api_key != os.getenv("SECRET_API_KEY", ""):
         raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
 
     # On récupère la valeur sous forme de texte ("bouton", "son", etc.)
@@ -241,7 +241,6 @@ def recevoir_alerte(source: SourceCapteur, x_api_key: str = Header(None)):
     cursor.execute("INSERT INTO evenements (source, timestamp) VALUES (?, ?)", (source_str, maintenant))
     conn.commit()
     conn.close()
-
     en_silence = est_heure_silencieuse()
 
     # --- LOGIQUE DISCORD ---
