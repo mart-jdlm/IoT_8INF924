@@ -5,8 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     volumes:
       # Synchronise le dossier 'database' local avec celui du conteneur
       - ./database:/app/database
