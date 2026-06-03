@@ -2,11 +2,11 @@
 #include <WiFiNINA.h>
 
 // ================= CONFIGURATION =================
-const char* ssid = "BELL782";          // Ton réseau Wi-Fi
-const char* password = "logetudes";    // Ton mot de passe Wi-Fi
+const char* ssid = "WIFI";          // Ton réseau Wi-Fi
+const char* password = "PASSWORD";    // Ton mot de passe Wi-Fi
 
 // Adresse IP de ton PC Fedora et port du serveur
-const char* serverAddress = "192.168.2.91"; 
+const char* serverAddress = "IP_SERVEUR"; 
 const int serverPort = 8000;
 
 // Broches du matériel (Mises à jour avec ton schéma)
