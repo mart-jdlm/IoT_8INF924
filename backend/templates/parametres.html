@@ -1,0 +1,186 @@
+{% extends "layout.html" %}
+
+{% block titre_page %}⚙️ Configuration Avancée{% endblock %}
+
+{% block content %}
+<style>
+    .settings-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+    @media(min-width: 1100px) { .settings-grid { grid-template-columns: 1fr 1.2fr 1fr; } } /* 3 colonnes */
+    
+    .setting-group { margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
+    .setting-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    
+    .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.95rem; }
+    .setting-label { display: flex; flex-direction: column; }
+    .setting-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    
+    input[type="time"], input[type="number"], input[type="text"], input[type="url"], select { 
+        background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); 
+        padding: 8px 12px; border-radius: 6px; font-family: 'Inter', sans-serif; outline: none;
+    }
+    input[type="text"], input[type="url"], select { width: 100%; margin-top: 8px; box-sizing: border-box; }
+    select { cursor: pointer; }
+    
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-blue); }
+    input:checked + .slider:before { transform: translateX(20px); }
+    input.vacances:checked + .slider { background-color: var(--accent-orange); }
+
+    .sensor-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+    .sensor-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 10px; color: var(--accent-blue); }
+</style>
+
+<div class="settings-grid">
+    <div class="card">
+        <h2 class="card-title">📡 Activation Capteurs</h2>
+        <div class="setting-group">
+            <div class="setting-row">
+                <div class="setting-label"><strong>Bouton Physique</strong><span class="setting-desc">Activer la surveillance du bouton</span></div>
+                <label class="switch"><input type="checkbox" id="notif_bouton" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><strong>Infrarouge (PIR)</strong><span class="setting-desc">Activer la détection de mouvement</span></div>
+                <label class="switch"><input type="checkbox" id="notif_infrarouge" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><strong>Capteur Sonore</strong><span class="setting-desc">Activer la détection de bruit</span></div>
+                <label class="switch"><input type="checkbox" id="notif_son" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="setting-row">
+                <div class="setting-label"><strong>Délai Anti-Spam (Sec)</strong></div>
+                <input type="number" id="delai_anti_spam" style="width: 70px;" min="0" onchange="sauvegarderConfig()">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">🤖 Automatisation & Actions</h2>
+        
+        <div class="sensor-box">
+            <div class="sensor-header">🔘 Action Bouton</div>
+            <select id="sonnerie_bouton" onchange="sauvegarderConfig()">
+                <option value="0">🔇 Ne pas sonner</option>
+                <option value="1">🚨 Sirène Police</option>
+                <option value="2">🎵 Carillon Doux</option>
+                <option value="3">🔥 Alarme Aiguë</option>
+            </select>
+            <input type="text" id="msg_bouton" placeholder="Message Discord personnalisé" onchange="sauvegarderConfig()">
+        </div>
+
+        <div class="sensor-box">
+            <div class="sensor-header" style="color: var(--accent-orange);">🏃 Action Infrarouge</div>
+            <select id="sonnerie_infrarouge" onchange="sauvegarderConfig()">
+                <option value="0">🔇 Ne pas sonner</option>
+                <option value="1">🚨 Sirène Police</option>
+                <option value="2">🎵 Carillon Doux</option>
+                <option value="3">🔥 Alarme Aiguë</option>
+            </select>
+            <input type="text" id="msg_infrarouge" placeholder="Message Discord personnalisé" onchange="sauvegarderConfig()">
+        </div>
+
+        <div class="sensor-box">
+            <div class="sensor-header" style="color: var(--accent-purple);">🔊 Action Sonore</div>
+            <select id="sonnerie_son" onchange="sauvegarderConfig()">
+                <option value="0">🔇 Ne pas sonner</option>
+                <option value="1">🚨 Sirène Police</option>
+                <option value="2">🎵 Carillon Doux</option>
+                <option value="3">🔥 Alarme Aiguë</option>
+            </select>
+            <input type="text" id="msg_son" placeholder="Message Discord personnalisé" onchange="sauvegarderConfig()">
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">🌙 Planification & Réseau</h2>
+        <div class="setting-group">
+            <div class="setting-row" style="background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <div class="setting-label"><strong style="color: var(--accent-orange);">🌴 Mode Vacances</strong><span class="setting-desc">Annule le silence. Alerte 24/7.</span></div>
+                <label class="switch"><input type="checkbox" class="vacances" id="mode_vacances" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+            </div>
+        </div>
+        <div class="setting-group">
+            <div class="setting-row">
+                <div class="setting-label"><strong>Heures Silencieuses</strong></div>
+                <label class="switch"><input type="checkbox" id="silence_actif" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+            </div>
+            <div class="setting-row"><span>Début :</span> <input type="time" id="heures_silencieuses_debut" onchange="sauvegarderConfig()"></div>
+            <div class="setting-row"><span>Fin :</span> <input type="time" id="heures_silencieuses_fin" onchange="sauvegarderConfig()"></div>
+        </div>
+        <div class="setting-group">
+            <div class="setting-label"><strong>🔗 URL Webhook Discord</strong></div>
+            <input type="url" id="webhook_discord" placeholder="https://discord.com/api/webhooks/..." onchange="sauvegarderConfig()">
+        </div>
+        
+        <div id="msg-save" style="color: var(--accent-green); font-size: 0.85rem; text-align: right; margin-top: 10px; opacity: 0; transition: 0.3s;">
+            ✅ Config enregistrée !
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function chargerConfig() {
+        const reponse = await fetch('/api/etat');
+        const data = await reponse.json();
+        const conf = data.config;
+
+        document.getElementById('notif_bouton').checked = conf.notif_bouton;
+        document.getElementById('notif_infrarouge').checked = conf.notif_infrarouge;
+        document.getElementById('notif_son').checked = conf.notif_son;
+        document.getElementById('delai_anti_spam').value = conf.delai_anti_spam;
+        
+        document.getElementById('sonnerie_bouton').value = conf.sonnerie_bouton;
+        document.getElementById('sonnerie_infrarouge').value = conf.sonnerie_infrarouge;
+        document.getElementById('sonnerie_son').value = conf.sonnerie_son;
+        document.getElementById('msg_bouton').value = conf.msg_bouton;
+        document.getElementById('msg_infrarouge').value = conf.msg_infrarouge;
+        document.getElementById('msg_son').value = conf.msg_son;
+
+        document.getElementById('mode_vacances').checked = conf.mode_vacances;
+        document.getElementById('silence_actif').checked = conf.silence_actif;
+        document.getElementById('heures_silencieuses_debut').value = conf.heures_silencieuses_debut;
+        document.getElementById('heures_silencieuses_fin').value = conf.heures_silencieuses_fin;
+        document.getElementById('webhook_discord').value = conf.webhook_discord;
+    }
+
+    async function sauvegarderConfig() {
+        const nouvelleConfig = {
+            notif_bouton: document.getElementById('notif_bouton').checked,
+            notif_infrarouge: document.getElementById('notif_infrarouge').checked,
+            notif_son: document.getElementById('notif_son').checked,
+            delai_anti_spam: parseInt(document.getElementById('delai_anti_spam').value) || 0,
+            
+            sonnerie_bouton: document.getElementById('sonnerie_bouton').value,
+            sonnerie_infrarouge: document.getElementById('sonnerie_infrarouge').value,
+            sonnerie_son: document.getElementById('sonnerie_son').value,
+            msg_bouton: document.getElementById('msg_bouton').value,
+            msg_infrarouge: document.getElementById('msg_infrarouge').value,
+            msg_son: document.getElementById('msg_son').value,
+            
+            mode_vacances: document.getElementById('mode_vacances').checked,
+            silence_actif: document.getElementById('silence_actif').checked,
+            heures_silencieuses_debut: document.getElementById('heures_silencieuses_debut').value,
+            heures_silencieuses_fin: document.getElementById('heures_silencieuses_fin').value,
+            webhook_discord: document.getElementById('webhook_discord').value
+        };
+
+        await fetch('/api/sauvegarder_config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nouvelleConfig)
+        });
+
+        const msg = document.getElementById('msg-save');
+        msg.style.opacity = 1;
+        setTimeout(() => msg.style.opacity = 0, 2000);
+    }
+
+    chargerConfig();
+</script>
+{% endblock %}

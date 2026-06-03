@@ -26,6 +26,11 @@ const unsigned long DELAI_COOLDOWN = 1000; // 5 secondes minimum entre deux aler
 unsigned long dernierCheckAlarme = 0;
 const unsigned long DELAI_CHECK_ALARME = 4000; // Vérifie toutes les 4 secondes
 
+// Mémoire locale pour le Edge Computing
+int sonBouton = 2;
+int sonIR = 1;
+int sonSon = 0;
+
 WiFiClient client;
 int status = WL_IDLE_STATUS;
 
@@ -64,7 +69,7 @@ void loop() {
   // 1. Lecture du Bouton (Digital)
   if (digitalRead(PIN_BOUTON) == HIGH && (maintenant - dernierEnvoiBouton > DELAI_COOLDOWN)) {
     Serial.println("🔘 Bouton pressé !");
-    jouerSonnette();
+    jouerSirene(sonBouton);
     envoyerAlerte("bouton");
     dernierEnvoiBouton = maintenant;
   }
@@ -72,7 +77,7 @@ void loop() {
   // 2. Lecture de l'Infrarouge (Digital)
   /*if (digitalRead(PIN_IR) == HIGH && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
     Serial.println("🏃 Mouvement détecté !");
-    jouerSonnette();
+    jouerSirene(sonIR);
     envoyerAlerte("infrarouge");
     dernierEnvoiIR = maintenant;
   }*/
@@ -82,7 +87,7 @@ void loop() {
   if (niveauSonore > SEUIL_BRUIT && (maintenant - dernierEnvoiSon > DELAI_COOLDOWN)) {
     Serial.print("🔊 Bruit fort détecté ! Niveau : ");
     Serial.println(niveauSonore);
-    jouerSonnette();
+    jouerSirene(sonSon);
     envoyerAlerte("son");
     dernierEnvoiSon = maintenant;
   }
@@ -120,7 +125,6 @@ void envoyerAlerte(String source) {
   }
 }
 
-// Fonction qui interroge le serveur pour savoir s'il faut sonner
 void verifierAlarme() {
   if (client.connect(serverAddress, serverPort)) {
     client.println("GET /api/check_alarme HTTP/1.1");
@@ -129,7 +133,6 @@ void verifierAlarme() {
     client.println("Connection: close");
     client.println();
 
-    // On attend un peu que le serveur réponde
     delay(100); 
     
     String reponse = "";
@@ -139,20 +142,54 @@ void verifierAlarme() {
     }
     client.stop();
 
-    // Si la réponse contient un "1" à la toute fin du message HTTP
-    if (reponse.endsWith("1")) {
-      Serial.println("🚨 ORDRE REÇU : DÉCLENCHEMENT DE L'ALARME !");
-      jouerSirene();
+    reponse.trim(); // Nettoie le texte reçu
+    int len = reponse.length();
+    
+    // Si on a bien reçu notre code à 4 chiffres (ex: "0210")
+    if (len >= 4) {
+      char manuel = reponse.charAt(len - 4);
+      char sBouton = reponse.charAt(len - 3);
+      char sIR = reponse.charAt(len - 2);
+      char sSon = reponse.charAt(len - 1);
+
+      // 1. Déclenchement manuel via les boutons du site
+      if (manuel == '1') jouerSirene(1);
+      else if (manuel == '2') jouerSirene(2);
+      else if (manuel == '3') jouerSirene(3);
+
+      // 2. Mise à jour de la mémoire pour le prochain appui
+      sonBouton = String(sBouton).toInt();
+      sonIR = String(sIR).toInt();
+      sonSon = String(sSon).toInt();
     }
   }
 }
 
-// Fonction pour faire un son d'alarme agressif
-void jouerSirene() {
-  for (int i = 0; i < 3; i++) {
-    tone(PIN_SPEAKER, 1200, 300);
-    delay(300);
-    tone(PIN_SPEAKER, 800, 300);
-    delay(300);
+// Nouvelle fonction avec un paramètre "type"
+void jouerSirene(int type) {
+  if (type == 1) {
+    // Alarme de Police (Rapide Haut/Bas)
+    for (int i = 0; i < 5; i++) {
+      tone(PIN_SPEAKER, 1200, 200);
+      delay(200);
+      tone(PIN_SPEAKER, 800, 200);
+      delay(200);
+    }
+  } 
+  else if (type == 2) {
+    // Carillon Doux (Ding - Dong)
+    tone(PIN_SPEAKER, 1000, 400); // Ding (Aigu)
+    delay(500);
+    tone(PIN_SPEAKER, 700, 600);  // Dong (Grave)
+    delay(800);
+  } 
+  else if (type == 3) {
+    // Alarme Incendie (très stridente et rapide)
+    for (int i = 0; i < 10; i++) {
+      tone(PIN_SPEAKER, 2000, 100);
+      delay(100);
+      noTone(PIN_SPEAKER);
+      delay(50);
+    }
   }
 }

@@ -1,23 +1,47 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.templating import Jinja2Templates
 import sqlite3
 from datetime import datetime
 import os
-from dotenv import load_dotenv
 import requests 
-import time # !!! NOUVEAU !!! Pour gérer le battement de coeur
+import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="API Sonnette Intelligente")
 
+# On connecte le dossier "templates"
+templates = Jinja2Templates(directory="templates")
+
 os.makedirs("database", exist_ok=True)
 DB_PATH = "database/sonnette.db"
-load_dotenv()
-WEBHOOK_URL = os.getenv("URL_DISCORD")
 
+# --- MÉMOIRE GLOBALE ENRICHIE ---
 etat_systeme = {
-    "notifications_actives": True,
-    "declencher_alarme": False,
-    "dernier_contact": time.time() # !!! NOUVEAU !!! L'heure de la dernière communication
+    "dernier_contact": time.time(),
+    "dernier_envoi_discord": 0,
+    "alarme_code": "0", 
+    "config": {
+        "notif_bouton": True,
+        "notif_infrarouge": True,
+        "notif_son": False,
+        "heures_silencieuses_debut": "22:00",
+        "heures_silencieuses_fin": "07:00",
+        "silence_actif": False,
+        "mode_vacances": False,
+        "delai_anti_spam": 30,
+        "webhook_discord": os.getenv("URL_DISCORD", ""),
+        
+        # --- NOUVEAUX PARAMÈTRES COOL ---
+        "sonnerie_bouton": "2",      # 2 = Carillon par défaut
+        "sonnerie_infrarouge": "1",  # 1 = Police par défaut
+        "sonnerie_son": "0",         # 0 = Silencieux
+        "msg_bouton": "Quelqu'un a sonné à la porte !",
+        "msg_infrarouge": "Mouvement suspect détecté !",
+        "msg_son": "Bruit anormal entendu !"
+    }
 }
 
 def init_db():
@@ -35,45 +59,91 @@ def init_db():
 
 init_db()
 
-@app.post("/api/toggle_silence")
-def basculer_silence():
-    etat_systeme["notifications_actives"] = not etat_systeme["notifications_actives"]
-    return {"notifications_actives": etat_systeme["notifications_actives"]}
+def est_heure_silencieuse():
+    # Le Mode Vacances annule le mode silencieux !
+    if etat_systeme["config"]["mode_vacances"]: return False
+    if not etat_systeme["config"]["silence_actif"]: return False
+    
+    try:
+        maintenant = datetime.now().time()
+        debut = datetime.strptime(etat_systeme["config"]["heures_silencieuses_debut"], "%H:%M").time()
+        fin = datetime.strptime(etat_systeme["config"]["heures_silencieuses_fin"], "%H:%M").time()
+        
+        if debut <= fin: return debut <= maintenant <= fin
+        else: return maintenant >= debut or maintenant <= fin
+    except:
+        return False
 
-@app.post("/api/activer_alarme")
-def activer_alarme():
-    etat_systeme["declencher_alarme"] = True
+# ==========================================
+# ROUTES DES PAGES WEB (JINJA2)
+# ==========================================
+
+@app.get("/", response_class=HTMLResponse)
+async def page_dashboard(request: Request):
+    return templates.TemplateResponse(request=request, name="dashboard.html")
+
+@app.get("/historique", response_class=HTMLResponse)
+async def page_historique(request: Request):
+    return templates.TemplateResponse(request=request, name="historique.html")
+
+@app.get("/parametres", response_class=HTMLResponse)
+async def page_parametres(request: Request):
+    return templates.TemplateResponse(request=request, name="parametres.html")
+
+# ==========================================
+# ROUTES DE L'API (DONNÉES)
+# ==========================================
+
+@app.post("/api/sauvegarder_config")
+def sauvegarder_config(config: dict):
+    etat_systeme["config"].update(config)
+    return {"statut": "Sauvegardé"}
+
+@app.post("/api/activer_alarme/{code}")
+def activer_alarme(code: str):
+    etat_systeme["alarme_code"] = code
     return {"statut": "Alarme armée"}
 
 @app.get("/api/check_alarme", response_class=PlainTextResponse)
 def check_alarme():
-    # !!! NOUVEAU !!! À chaque fois que l'Arduino vérifie l'alarme, on met à jour son heure de vie
     etat_systeme["dernier_contact"] = time.time()
+    code_manuel = etat_systeme["alarme_code"]
     
-    if etat_systeme["declencher_alarme"]:
-        etat_systeme["declencher_alarme"] = False 
-        return "1"
-    return "0"
+    # On remet à zéro l'alarme manuelle après l'avoir lue
+    if code_manuel != "0":
+        etat_systeme["alarme_code"] = "0"
+        
+    c = etat_systeme["config"]
+    
+    # Si c'est l'heure silencieuse, on force tous les capteurs à "0" (silencieux)
+    if est_heure_silencieuse():
+        return f"{code_manuel}000"
+        
+    # Sinon, on envoie la configuration actuelle : ex "0210"
+    return f"{code_manuel}{c.get('sonnerie_bouton', '2')}{c.get('sonnerie_infrarouge', '1')}{c.get('sonnerie_son', '0')}"
 
 @app.get("/api/etat")
 def lire_etat():
-    # !!! NOUVEAU !!! Si l'Arduino n'a pas donné de nouvelles depuis plus de 12 secondes, il est hors ligne
-    temps_ecoule = time.time() - etat_systeme["dernier_contact"]
-    en_ligne = temps_ecoule < 12 
-    
     return {
-        "notifications_actives": etat_systeme["notifications_actives"],
-        "en_ligne": en_ligne
+        "en_ligne": (time.time() - etat_systeme["dernier_contact"]) < 12,
+        "config": etat_systeme["config"],
+        "en_silence": est_heure_silencieuse()
     }
 
-@app.get("/api/historique")
-def lire_historique():
+@app.get("/api/historique_data")
+def lire_historique_data(limite: int = 50):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC LIMIT 20")
+    
+    # Si la limite est supérieure à 0, on limite. Sinon (limite = 0), on prend TOUT.
+    if limite > 0:
+        cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC LIMIT ?", (limite,))
+    else:
+        cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC")
+        
     lignes = cursor.fetchall()
     conn.close()
-    return [{"source": ligne[0], "heure": ligne[1]} for ligne in lignes]
+    return [{"source": l[0], "heure": l[1]} for l in lignes]
 
 @app.get("/api/stats")
 def lire_statistiques():
@@ -82,204 +152,70 @@ def lire_statistiques():
     cursor.execute("SELECT source, COUNT(*) FROM evenements GROUP BY source")
     lignes = cursor.fetchall()
     conn.close()
-    return {ligne[0]: ligne[1] for ligne in lignes}
-
-@app.get("/", response_class=HTMLResponse)
-def accueil():
-    page_html = """
-    <!DOCTYPE html>
-    <html lang="fr">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Tableau de Bord - Sonnette</title>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
-            h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-            
-            /* !!! NOUVEAU !!! Style pour le statut en ligne/hors ligne */
-            .status-box { text-align: center; margin-bottom: 20px; font-weight: bold; font-size: 18px; transition: 0.3s; }
-            .online { color: #27ae60; }
-            .offline { color: #c0392b; animation: clignoter 1.5s infinite; }
-            
-            @keyframes clignoter { 50% { opacity: 0.5; } }
-            
-            .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-            .panneau-controle { text-align: center; margin-bottom: 20px; padding: 15px; background: #ecf0f1; border-radius: 8px;}
-            button { padding: 10px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; transition: 0.3s; margin: 5px; }
-            .btn-on { background-color: #2ecc71; color: white; }
-            .btn-off { background-color: #e74c3c; color: white; }
-            .btn-alarme { background-color: #c0392b; color: white; border: 2px solid #900; }
-            .btn-alarme:hover { background-color: #e74c3c; }
-            
-            .contenu-principal { display: flex; gap: 20px; flex-wrap: wrap; }
-            .section-graphique { flex: 1; min-width: 300px; text-align: center; }
-            .section-historique { flex: 2; min-width: 300px; }
-            
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-            th { background-color: #3498db; color: white; }
-            .source-bouton { color: #e74c3c; font-weight: bold; }
-            .source-infrarouge { color: #f39c12; font-weight: bold; }
-            .source-son { color: #9b59b6; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🔔 Ma Sonnette Intelligente</h1>
-            <div id="status-indicateur" class="status-box offline">⏳ Recherche de l'Arduino...</div>
-            
-            <div class="panneau-controle">
-                <h3>⚙️ Contrôle du système</h3>
-                <button id="btn-notif" class="btn-on" onclick="basculerNotif()">🔊 Notifications</button>
-                <button class="btn-alarme" onclick="declencherAlarme()">🚨 DÉCLENCHER L'ALARME</button>
-            </div>
-
-            <div class="contenu-principal">
-                <div class="section-graphique">
-                    <h3>📊 Statistiques</h3>
-                    <canvas id="monGraphique"></canvas>
-                </div>
-                
-                <div class="section-historique">
-                    <h3 style="text-align: center;">Dernières détections</h3>
-                    <table id="table-historique">
-                        <thead>
-                            <tr>
-                                <th>Déclencheur</th>
-                                <th>Date et Heure</th>
-                            </tr>
-                        </thead>
-                        <tbody id="donnees">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <script>
-            let graphiqueStats = null;
-
-            async function basculerNotif() {
-                const reponse = await fetch('/api/toggle_silence', { method: 'POST' });
-                const data = await reponse.json();
-                mettreAJourBouton(data.notifications_actives);
-            }
-
-            async function declencherAlarme() {
-                await fetch('/api/activer_alarme', { method: 'POST' });
-                alert("Ordre envoyé ! L'Arduino va sonner.");
-            }
-
-            function mettreAJourBouton(actives) {
-                const btn = document.getElementById('btn-notif');
-                if (actives) {
-                    btn.className = 'btn-on'; btn.innerHTML = '🔊 Notifications';
-                } else {
-                    btn.className = 'btn-off'; btn.innerHTML = '🔕 Mode Silencieux';
-                }
-            }
-
-            // !!! NOUVEAU !!! Cette fonction met à jour le texte En ligne/Hors ligne
-            async function chargerEtat() {
-                try {
-                    const reponse = await fetch('/api/etat');
-                    const data = await reponse.json();
-                    
-                    mettreAJourBouton(data.notifications_actives);
-                    
-                    const indicateur = document.getElementById('status-indicateur');
-                    if (data.en_ligne) {
-                        indicateur.className = 'status-box online';
-                        indicateur.innerHTML = '🟢 Appareil connecté et actif';
-                    } else {
-                        indicateur.className = 'status-box offline';
-                        indicateur.innerHTML = '🔴 Appareil hors ligne (Connexion perdue)';
-                    }
-                } catch (e) {
-                    // Si le serveur Python plante, ça affichera hors ligne aussi
-                    document.getElementById('status-indicateur').className = 'status-box offline';
-                    document.getElementById('status-indicateur').innerHTML = '🔴 Serveur injoignable';
-                }
-            }
-
-            async function chargerHistorique() {
-                const reponse = await fetch('/api/historique');
-                const donnees = await reponse.json();
-                
-                let html = '';
-                donnees.forEach(event => {
-                    let sourceClasse = 'source-' + event.source;
-                    let emoji = event.source === 'bouton' ? '🔘' : (event.source === 'infrarouge' ? '🏃' : '🔊');
-                    html += `<tr>
-                                <td class="${sourceClasse}">${emoji} ${event.source.toUpperCase()}</td>
-                                <td>${event.heure.substring(0, 19)}</td>
-                             </tr>`;
-                });
-                document.getElementById('donnees').innerHTML = html;
-            }
-
-            async function chargerStatistiques() {
-                const reponse = await fetch('/api/stats');
-                const stats = await reponse.json();
-                const labels = Object.keys(stats);
-                const valeurs = Object.values(stats);
-                const couleurs = labels.map(label => {
-                    if(label === 'bouton') return '#e74c3c';
-                    if(label === 'infrarouge') return '#f39c12';
-                    if(label === 'son') return '#9b59b6';
-                    return '#bdc3c7';
-                });
-                const ctx = document.getElementById('monGraphique').getContext('2d');
-                
-                if (graphiqueStats != null) {
-                    graphiqueStats.data.labels = labels;
-                    graphiqueStats.data.datasets[0].data = valeurs;
-                    graphiqueStats.data.datasets[0].backgroundColor = couleurs;
-                    graphiqueStats.update();
-                } else {
-                    graphiqueStats = new Chart(ctx, {
-                        type: 'pie',
-                        data: { labels: labels, datasets: [{ data: valeurs, backgroundColor: couleurs, borderWidth: 1 }] },
-                        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-                    });
-                }
-            }
-
-            function rafraichirTout() {
-                chargerEtat();
-                chargerHistorique();
-                chargerStatistiques();
-            }
-
-            rafraichirTout();
-            setInterval(rafraichirTout, 3000); // Recharge tout (y compris le statut) toutes les 3s
-        </script>
-    </body>
-    </html>
-    """
-    return page_html
+    return {l[0]: l[1] for l in lignes}
 
 @app.post("/alerte")
 def recevoir_alerte(source: str):
-    # !!! NOUVEAU !!! Quand on reçoit une alerte, ça prouve aussi que l'Arduino est en vie !
-    etat_systeme["dernier_contact"] = time.time()
-    
+    temps_actuel = time.time()
+    etat_systeme["dernier_contact"] = temps_actuel
     maintenant = datetime.now()
+    
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO evenements (source, timestamp) VALUES (?, ?)", (source, maintenant))
     conn.commit()
     conn.close()
 
-    heure_formatee = maintenant.strftime('%H:%M:%S')
+    en_silence = est_heure_silencieuse()
+
+    # --- 2. LOGIQUE DISCORD ---
+    delai_ecoule = temps_actuel - etat_systeme["dernier_envoi_discord"]
+    anti_spam_ok = delai_ecoule >= etat_systeme["config"]["delai_anti_spam"]
     
-    if etat_systeme["notifications_actives"]:
-        message_discord = {"content": f"🔔 **Alerte Sonnette** : Détection via '{source}' à {heure_formatee} !"}
+    autorise_capteur = False
+    if source == "bouton" and etat_systeme["config"]["notif_bouton"]: autorise_capteur = True
+    elif source == "infrarouge" and etat_systeme["config"]["notif_infrarouge"]: autorise_capteur = True
+    elif source == "son" and etat_systeme["config"]["notif_son"]: autorise_capteur = True
+
+    webhook = etat_systeme["config"]["webhook_discord"]
+
+    if not en_silence and autorise_capteur and anti_spam_ok and webhook:
+        heure_formatee = maintenant.strftime('%H:%M:%S')
+        # On utilise le message personnalisé !
+        msg_custom = etat_systeme["config"].get(f"msg_{source}", f"Détection {source}")
+        
+        message = {"content": f"🔔 **Alerte IoT** : {msg_custom} *(à {heure_formatee})*"}
         try:
-            requests.post(WEBHOOK_URL, json=message_discord)
+            requests.post(webhook, json=message)
+            etat_systeme["dernier_envoi_discord"] = temps_actuel
         except:
             pass
 
-    return {"statut": "succès", "source": source, "heure": heure_formatee}
+    return {"statut": "succès"}
+
+@app.get("/api/kpi")
+def lire_kpi():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # 1. Nombre de détections aujourd'hui
+    aujourd_hui = datetime.now().strftime('%Y-%m-%d')
+    cursor.execute("SELECT COUNT(*) FROM evenements WHERE timestamp LIKE ?", (f"{aujourd_hui}%",))
+    total_jour = cursor.fetchone()[0]
+    
+    # 2. Le dernier événement enregistré
+    cursor.execute("SELECT source, timestamp FROM evenements ORDER BY id DESC LIMIT 1")
+    dernier = cursor.fetchone()
+    
+    # 3. Le capteur le plus sollicité au total
+    cursor.execute("SELECT source FROM evenements GROUP BY source ORDER BY COUNT(*) DESC LIMIT 1")
+    top_capteur = cursor.fetchone()
+    
+    conn.close()
+    
+    return {
+        "total_jour": total_jour,
+        "dernier_event": dernier[1] if dernier else "Aucun",
+        "derniere_source": dernier[0] if dernier else "-",
+        "top_capteur": top_capteur[0] if top_capteur else "Aucun"
+    }
