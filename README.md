@@ -3,7 +3,6 @@
 
 Ce dépôt contient l'ensemble des livrables (code source, schémas, et documentation) pour la réalisation de notre prototype de sonnette connectée dans le cadre du cours **8INF924 — Internet des Objets** à l'Université du Québec à Chicoutimi (UQAC).
 
----
 
 ## 📌 Liens Utiles et Ressources
 
@@ -11,6 +10,8 @@ Ce dépôt contient l'ensemble des livrables (code source, schémas, et document
 * **📐 Projet EasyEDA :** [Lien vers notre projet EasyEDA](https://u.easyeda.com/join?type=project&key=fac310169bb212075f3a17a619c96056&inviter=c13f891e938d48d1b52ad1fcd24347ec)
 * **🎓 Moodle du cours :** [Accès au cours 8INF924](https://moodle.uqac.ca/course/view.php?id=19530)
 * **📧 Enseignant :** Florentin Thullier (fthullie@uqac.ca) — Bureau : P3-5040
+* **🎧 Serveur Discord :**[Lien vers notre serveur Discord](https://discord.gg/tTEkU9W8)
+
 
 ---
 
