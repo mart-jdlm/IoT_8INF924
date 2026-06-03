@@ -1,0 +1,29 @@
+# ==========================================
+# Fichiers de configuration et secrets
+# ==========================================
+.env
+
+# ==========================================
+# Environnement virtuel Python
+# ==========================================
+venv/
+env/
+
+# ==========================================
+# Base de données locale (Évite d'envoyer l'historique)
+# ==========================================
+*.db
+*.sqlite3
+backend/database/sonnette.db
+
+# ==========================================
+# Fichiers de cache Python (Auto-générés)
+# ==========================================
+__pycache__/
+*.pyc
+
+# ==========================================
+# Fichiers système et éditeur de code
+# ==========================================
+.vscode/
+.DS_Store
