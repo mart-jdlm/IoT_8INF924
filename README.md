@@ -27,7 +27,6 @@ L'objectif est de concevoir et réaliser une sonnette connectée autonome capabl
 1. **Détecter une présence** et des bruits anormaux devant la porte.
 2. **Interagir avec le visiteur** localement via un haut-parleur avec des sonneries personnalisées (Carillon, Alarmes).
 3. **Informer l'utilisateur à distance** en temps réel via un système de notifications Discord et un tableau de bord web.
-4. **Assurer une redondance physique** grâce à un bouton classique de secours.
 
 ---
 
@@ -87,34 +86,30 @@ IOT_8INF924/
 ## 🚀 Installation et Démarrage
 
 ### 1. Déploiement du Backend (Serveur & Interface Web)
-Place-toi dans le dossier `backend/` et configure tes variables d'environnement.
-Crée un fichier `.env` contenant ton webhook Discord :
-```env
-URL_DISCORD="[https://discord.com/api/webhooks/ton_webhook_id/ton_token](https://discord.com/api/webhooks/ton_webhook_id/ton_token)"
-```
-Lance l'environnement de production avec Docker Compose :
-```bash
-cd backend
-docker-compose up -d --build
-``` 
-L'interface de gestion (Dashboard) sera accessible à l'adresse : `http://localhost:8000`
+1. Placez-vous dans le dossier `backend/`.
+2. Dupliquez le fichier `.env.example` et renommez-le en `.env`.
+3. Éditez le fichier `.env` avec vos identifiants, votre clé API secrète et votre Webhook Discord.
+4. Lancez l'environnement de production avec Docker Compose : `docker-compose up -d --build`.
+5. Accédez à l'interface de gestion via votre navigateur à l'adresse : `http://localhost:8000`.
 
 ### 2. Configuration du Firmware (Arduino)
 
-1. Ouvre le fichier `hardware/hardware.ino` dans l'IDE Arduino.
-2. Modifie la section **CONFIGURATION** située au début du script avec tes propres paramètres[cite: 1]:
-   * `ssid` : Le nom de ton réseau Wi-Fi .
-   * `password` : Le mot de passe de ton Wi-Fi.
-   * `serverAddress` : L'adresse IP locale de la machine hôte qui exécute le backend .
-   * `serverPort` : Le port exposé par ton conteneur Docker (par défaut `8000`).
-3. Assure-toi d'avoir installé la bibliothèque `WiFiNINA` via le gestionnaire de bibliothèques de l'IDE Arduino.
-4. Compile et téléverse le code sur ton microcontrôleur Arduino MKR1010.
+1. Placez-vous dans le dossier `hardware/`.
+2. Dupliquez le fichier `arduino_secrets.example.h` et renommez-le en `arduino_secrets.h`.
+
+3. Ouvrez `arduino_secrets.h` et renseignez votre réseau Wi-Fi, l'IP de votre serveur local et la clé API (qui doit être identique à celle du backend).
+
+4. Ouvrez `hardware.ino` dans l'IDE Arduino.
+
+5. Assurez-vous d'avoir installé la bibliothèque WiFiNINA.
+
+6. Compilez et téléversez le code sur votre microcontrôleur Arduino MKR1010.
 
 ---
 
 ## 📐 Conception Matérielle (PCB)
 
-Pour la conception physique du prototype, nous avons utilisé le logiciel **EasyEDA** afin de réaliser le schéma logique et le circuit imprimé[cite: 3]. [cite_start]Tous les modules et capteurs sont alimentés en **3.3V** pour respecter la tension logique maximale de l'Arduino MKR1010].
+Pour la conception physique du prototype, nous avons utilisé le logiciel **EasyEDA** afin de réaliser le schéma logique et le circuit imprimé. Tous les modules et capteurs sont alimentés en **3.3V** pour respecter la tension logique maximale de l'Arduino MKR1010].
 
 ### Attribution des Broches (Pinout)
 Le câblage a été pensé pour être robuste et utilise la configuration suivante:
