@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request, Header, HTTPException, Depends
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import FastAPI, Request, Header, HTTPException, Depends, Form, status
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from enum import Enum
 import sqlite3
 from datetime import datetime
@@ -14,22 +13,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==========================================
-# SÉCURITÉ WEB ET VALIDATION
+# SÉCURITÉ WEB (COOKIES)
 # ==========================================
-security = HTTPBasic()
 
-def verifier_admin(credentials: HTTPBasicCredentials = Depends(security)):
-    # ⚠️ Tu peux changer le nom d'utilisateur et le mot de passe ici
-    correct_username = secrets.compare_digest(credentials.username, "admin")
-    correct_password = secrets.compare_digest(credentials.password, "uqac924")
-    
-    if not (correct_username and correct_password):
+def verifier_admin(request: Request):
+    # On vérifie si le navigateur possède notre cookie secret
+    session = request.cookies.get("session_iot")
+    if session != "admin_auth_valide":
+        # S'il n'y a pas de cookie, on renvoie brutalement vers la page de login
         raise HTTPException(
-            status_code=401,
-            detail="Identifiants incorrects",
-            headers={"WWW-Authenticate": "Basic"},
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": "/login"}
         )
-    return credentials.username
+    return True
 
 # Liste stricte des capteurs autorisés
 class SourceCapteur(str, Enum):
@@ -100,6 +96,48 @@ def est_heure_silencieuse():
         else: return maintenant >= debut or maintenant <= fin
     except:
         return False
+    
+# ==========================================
+# ROUTES DE CONNEXION / DÉCONNEXION
+# ==========================================
+
+@app.get("/login", response_class=HTMLResponse)
+async def page_login(request: Request, erreur: str = None):
+    # Affiche la page HTML. S'il y a un paramètre ?erreur=... dans l'URL, on l'affiche.
+    return templates.TemplateResponse(
+        request=request, 
+        name="login.html", 
+        context={"request": request, "erreur": erreur}
+    )
+
+@app.post("/login")
+async def traiter_login(username: str = Form(...), password: str = Form(...)):
+    # Tes identifiants (tu peux les changer)
+    correct_username = secrets.compare_digest(username, os.getenv("LOGIN", ""))
+    correct_password = secrets.compare_digest(password, os.getenv("PASSWORD", ""))
+
+    if correct_username and correct_password:
+        # Si c'est bon, on prépare une redirection vers l'accueil (Dashboard)
+        reponse = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        
+        # Le plus important : on dépose un cookie invisible et sécurisé dans le navigateur
+        reponse.set_cookie(
+            key="session_iot", 
+            value="admin_auth_valide", 
+            httponly=True,   # Empêche les scripts JS de voler le cookie
+            max_age=86400    # Le cookie expire dans 24 heures (en secondes)
+        )
+        return reponse
+    else:
+        # Si c'est faux, on redirige vers le login avec un message d'erreur
+        return RedirectResponse(url="/login?erreur=Identifiants incorrects", status_code=status.HTTP_302_FOUND)
+
+@app.get("/logout")
+async def deconnexion():
+    # Pour se déconnecter, on redirige vers le login et on détruit le cookie
+    reponse = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    reponse.delete_cookie("session_iot")
+    return reponse
 
 # ==========================================
 # ROUTES DES PAGES WEB (JINJA2) - PROTÉGÉES
