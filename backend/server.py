@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 import sqlite3
@@ -105,7 +105,11 @@ def activer_alarme(code: str):
     return {"statut": "Alarme armée"}
 
 @app.get("/api/check_alarme", response_class=PlainTextResponse)
-def check_alarme():
+def check_alarme(x_api_key: str = Header(None)):
+    # VÉRIFICATION DE SÉCURITÉ
+    if x_api_key != os.getenv("API_KEY", ""):
+        raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
+    
     etat_systeme["dernier_contact"] = time.time()
     code_manuel = etat_systeme["alarme_code"]
     
@@ -155,7 +159,11 @@ def lire_statistiques():
     return {l[0]: l[1] for l in lignes}
 
 @app.post("/alerte")
-def recevoir_alerte(source: str):
+def recevoir_alerte(source: str, x_api_key: str = Header(None)):
+    # VÉRIFICATION DE SÉCURITÉ
+    if x_api_key != os.getenv("API_KEY", ""):
+        raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
+    
     temps_actuel = time.time()
     etat_systeme["dernier_contact"] = temps_actuel
     maintenant = datetime.now()

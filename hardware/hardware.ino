@@ -1,12 +1,14 @@
+#include 
 #include <SPI.h>
 #include <WiFiNINA.h>
 
 // ================= CONFIGURATION =================
-const char* ssid = "WIFI";          // Ton réseau Wi-Fi
-const char* password = "PASSWORD";    // Ton mot de passe Wi-Fi
+const char* ssid = SECRET_SSID;
+const char* password = SECRET_PASS;
+const char* apiKey = SECRET_API_KEY;
 
 // Adresse IP de ton PC Fedora et port du serveur
-const char* serverAddress = "IP_SERVEUR"; 
+const char* serverAddress = SERVER_ADDRESS; 
 const int serverPort = 8000;
 
 // Broches du matériel (Mises à jour avec ton schéma)
@@ -108,7 +110,7 @@ void jouerSonnette() {
   tone(PIN_SPEAKER, 600, 400);  // "Dong"
 }
 
-// Fonction d'envoi HTTP
+// Fonction d'envoi HTTP modifiée pour la sécurité
 void envoyerAlerte(String source) {
   if (client.connect(serverAddress, serverPort)) {
     client.print("POST /alerte?source=");
@@ -116,23 +118,33 @@ void envoyerAlerte(String source) {
     client.println(" HTTP/1.1");
     client.print("Host: ");
     client.println(serverAddress);
+    
+    // NOUVEAU : Envoi de la clé API dans les en-têtes
+    client.print("X-API-Key: ");
+    client.println(apiKey);
+    
     client.println("Connection: close");
     client.println(); 
     client.stop(); 
-    Serial.println("   -> 🌐 Alerte envoyée au serveur Fedora.");
+    Serial.println("   -> 🌐 Alerte envoyée (Sécurisée).");
   } else {
-    Serial.println("   -> ❌ Échec de la connexion au serveur.");
+    Serial.println("   -> ❌ Échec de la connexion.");
   }
 }
 
+// Fonction de vérification modifiée pour la sécurité
 void verifierAlarme() {
   if (client.connect(serverAddress, serverPort)) {
     client.println("GET /api/check_alarme HTTP/1.1");
     client.print("Host: ");
     client.println(serverAddress);
+    
+    // NOUVEAU : Envoi de la clé API
+    client.print("X-API-Key: ");
+    client.println(apiKey);
+    
     client.println("Connection: close");
     client.println();
-
     delay(100); 
     
     String reponse = "";
