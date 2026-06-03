@@ -61,14 +61,17 @@ IOT_8INF924/
 │   │   ├── dashboard.html
 │   │   ├── historique.html
 │   │   ├── layout.html
+│   │   ├── login.html
 │   │   └── parametres.html
 │   ├── .dockerignore
+│   ├── .env
 │   ├── docker-compose.yml   
 │   ├── Dockerfile         
 │   ├── requirements.txt 
 │   └── server.py    
-├── hardware/            
-│   └── hardware.ino     
+├── hardware/           
+│   └── arduino_secrets.h
+│   └── hardware.ino
 ├── images/           
 ├── .gitignore            
 ├── README.md   
