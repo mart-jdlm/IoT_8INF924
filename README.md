@@ -1,4 +1,4 @@
-# 🔔 8INF924 — Internet des Objets (IoT) | UQAC
+# 8INF924 — Internet des Objets (IoT) | UQAC
 ## Projet de Session : Sujet 2 — Sonnette (pas si) intelligente
 
 Ce dépôt contient l'ensemble des livrables (code source, schémas, et documentation) pour la réalisation de notre prototype de sonnette connectée dans le cadre du cours **8INF924 — Internet des Objets** à l'Université du Québec à Chicoutimi (UQAC).
