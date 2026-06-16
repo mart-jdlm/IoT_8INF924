@@ -20,8 +20,8 @@ const int PIN_ULTRASON = A2;
 const int PIN_SPEAKER = 4;
 const int PIN_SON = A1;
 
-const int SEUIL_BRUIT = 50; // Sensibilité du capteur de son (0-1023)
-const int SEUIL_DISTANCE = 80;
+int seuilBruit = 50; // Sensibilité du capteur de son (0-1023)
+int seuilDistance = 80;
 
 // ==========================================
 // ÉTAT DU SYSTÈME (TIMERS & MÉMOIRE)
@@ -180,12 +180,21 @@ void verifierAlarme() {
     reponse.trim(); 
     int len = reponse.length();
     
-    // 3. Traitement
-    if (len >= 4) {
-      char manuel = reponse.charAt(len - 4);
-      sonBouton = String(reponse.charAt(len - 3)).toInt();
-      sonIR = String(reponse.charAt(len - 2)).toInt();
-      sonSon = String(reponse.charAt(len - 1)).toInt();
+    // 3. Traitement (Format attendu : Manuel,Bouton,IR,Son,Distance,Bruit -> ex: "0,2,1,0,80,50")
+    int id1 = reponse.indexOf(',');
+    int id2 = reponse.indexOf(',', id1 + 1);
+    int id3 = reponse.indexOf(',', id2 + 1);
+    int id4 = reponse.indexOf(',', id3 + 1);
+    int id5 = reponse.indexOf(',', id4 + 1);
+
+    // Si on a bien trouvé toutes les virgules, on découpe le texte
+    if (id5 > 0) {
+      char manuel = reponse.substring(0, id1).charAt(0);
+      sonBouton = reponse.substring(id1 + 1, id2).toInt();
+      sonIR = reponse.substring(id2 + 1, id3).toInt();
+      sonSon = reponse.substring(id3 + 1, id4).toInt();
+      seuilDistance = reponse.substring(id4 + 1, id5).toInt();
+      seuilBruit = reponse.substring(id5 + 1).toInt();
 
       // Déclenchement forcé
       if (manuel == '1') jouerSirene(1);
@@ -195,7 +204,6 @@ void verifierAlarme() {
       else if (manuel == '5') jouerSirene(5);
       else if (manuel == '6') jouerSirene(6);
     }
-    client.stop();
   }
 }
 
