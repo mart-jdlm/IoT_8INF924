@@ -77,38 +77,28 @@ void setup() {
 // ==========================================
 
 void loop() {
-  // --- DÉBUT DU BLOC DE TEST ---
-  int distanceBrute = mesurerDistance();
-  Serial.print("Test Capteur -> Valeur lue : ");
-  Serial.println(distanceBrute);
-  delay(500); // On ralentit pour avoir le temps de lire
-  return;     // On empêche le reste du code de s'exécuter pour l'instant
-  // --- FIN DU BLOC DE TEST ---
-  
   unsigned long maintenant = millis();
 
   // 1. Capteur : Bouton physique
   if (digitalRead(PIN_BOUTON) == HIGH && (maintenant - dernierEnvoiBouton > DELAI_COOLDOWN)) {
     Serial.println("🔘 Bouton pressé !");
-    envoyerAlerte("bouton"); // L'envoi réseau se fait AVANT de bloquer avec le son
+    envoyerAlerte("bouton"); 
     jouerSirene(sonBouton);
     dernierEnvoiBouton = maintenant;
   }
 
-  // 2. Capteur : Mouvement Ultrason
+  // 2. Capteur : Ultrason (remplace l'ancien Infrarouge)
   int distance = mesurerDistance();
-  
-  // Si un objet est détecté sous le seuil (et que la distance est valide)
+  // Si un objet est détecté à moins de 80cm (SEUIL_DISTANCE)
   if (distance > 0 && distance < SEUIL_DISTANCE && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
     Serial.print("🏃 Intrusion détectée ! Distance : ");
     Serial.print(distance);
     Serial.println(" cm");
     
-    // Tu peux garder "infrarouge" pour ne pas casser ton serveur web actuel, 
-    // ou le renommer en "ultrason" (mais il faudra modifier ton code Python/JS en conséquence)
+    // On garde le mot "infrarouge" ici pour que ton site web (qui s'attend à ce mot) 
+    // continue de l'afficher correctement sans devoir modifier tout le code Python/JS !
     envoyerAlerte("infrarouge"); 
     jouerSirene(sonIR);
-    
     dernierEnvoiIR = maintenant;
   }
 
