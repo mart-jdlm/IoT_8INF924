@@ -270,6 +270,7 @@ void jouerSirene(int type) {
 
 /**
  * Mesure la distance en cm pour un capteur ultrason DFRobot Gravity V1.0 (1 seul pin)
+ */
 int mesurerDistance() {
   // Lecture de la tension envoyée par le capteur (entre 0 et 1023)
   int valeurBrute = analogRead(PIN_ULTRASON);
