@@ -149,25 +149,37 @@ void verifierAlarme() {
     client.println(apiKey);
     client.println("Connection: close");
     client.println();
-    delay(100); 
     
-    String reponse = "";
-    while (client.available()) {
-      reponse += (char)client.read();
+    // On attend que le serveur réponde
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+      if (millis() - timeout > 5000) {
+        client.stop();
+        return; // Timeout
+      }
     }
-    client.stop();
 
+    // 1. Ignorer les en-têtes HTTP (ils se terminent par une ligne vide "\r")
+    while (client.connected()) {
+      String ligne = client.readStringUntil('\n');
+      if (ligne == "\r") {
+        break; 
+      }
+    }
+
+    // 2. Lire uniquement le corps de la réponse (tes 4 chiffres)
+    String reponse = client.readString();
     reponse.trim(); 
     int len = reponse.length();
     
-    // Traitement du format d'état du serveur (ex: "0210")
+    // 3. Traitement
     if (len >= 4) {
       char manuel = reponse.charAt(len - 4);
       sonBouton = String(reponse.charAt(len - 3)).toInt();
       sonIR = String(reponse.charAt(len - 2)).toInt();
       sonSon = String(reponse.charAt(len - 1)).toInt();
 
-      // Déclenchement forcé depuis le dashboard Web
+      // Déclenchement forcé
       if (manuel == '1') jouerSirene(1);
       else if (manuel == '2') jouerSirene(2);
       else if (manuel == '3') jouerSirene(3);
@@ -175,6 +187,7 @@ void verifierAlarme() {
       else if (manuel == '5') jouerSirene(5);
       else if (manuel == '6') jouerSirene(6);
     }
+    client.stop();
   }
 }
 
