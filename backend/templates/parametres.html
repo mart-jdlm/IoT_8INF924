@@ -56,6 +56,14 @@
                 <div class="setting-label"><strong>Délai Anti-Spam (Sec)</strong></div>
                 <input type="number" id="delai_anti_spam" style="width: 70px;" min="0" onchange="sauvegarderConfig()">
             </div>
+            <div class="setting-row">
+                <div class="setting-label"><strong>Seuil Ultrason (cm)</strong><span class="setting-desc">Distance max. de détection</span></div>
+                <input type="number" id="seuil_distance" style="width: 80px;" min="1" max="500" onchange="sauvegarderConfig()">
+            </div>
+            <div class="setting-row">
+                <div class="setting-label"><strong>Seuil Sonore</strong><span class="setting-desc">Sensibilité au bruit (0-1023)</span></div>
+                <input type="number" id="seuil_son" style="width: 80px;" min="0" max="1023" onchange="sauvegarderConfig()">
+            </div>
         </div>
     </div>
 
