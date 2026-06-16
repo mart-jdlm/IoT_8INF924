@@ -59,9 +59,11 @@ etat_systeme = {
         "delai_anti_spam": 30,
         "webhook_discord": os.getenv("URL_DISCORD", ""),
         
+        # --- NOUVEAUX SEUILS PAR DÉFAUT ---
+        "seuil_distance": 80,
+        "seuil_son": 50,
+        
         # --- MISE À JOUR DES PROFILS SONORES ---
-        # 0 = Silencieux | 1 = Police | 2 = Carillon | 3 = Incendie 
-        # 4 = Mario      | 5 = Zelda  | 6 = Sci-Fi Robotique
         "sonnerie_bouton": "4",      # 4 = Pièce Mario par défaut
         "sonnerie_infrarouge": "6",  # 6 = Robotique par défaut
         "sonnerie_son": "0",         # 0 = Silencieux par défaut
@@ -71,7 +73,6 @@ etat_systeme = {
         "msg_son": "Bruit anormal entendu !"
     }
 }
-
 # ==========================================
 # BASE DE DONNÉES & UTILITAIRES
 # ==========================================
@@ -176,7 +177,7 @@ def activer_alarme(code: str):
 
 @app.get("/api/check_alarme", response_class=PlainTextResponse)
 def check_alarme(x_api_key: str = Header(None)):
-    """Permet à l'Arduino de récupérer l'état actuel et les consignes."""
+    """Permet à l'Arduino de récupérer l'état actuel, les consignes et les seuils."""
     if x_api_key != os.getenv("SECRET_API_KEY", ""):
         raise HTTPException(status_code=401, detail="Non autorisé. Mauvaise clé API.")
     
@@ -189,10 +190,19 @@ def check_alarme(x_api_key: str = Header(None)):
         
     c = etat_systeme["config"]
     
+    # Récupération sécurisée avec valeurs par défaut
+    son_b = c.get('sonnerie_bouton', '2')
+    son_i = c.get('sonnerie_infrarouge', '1')
+    son_s = c.get('sonnerie_son', '0')
+    seuil_d = c.get('seuil_distance', 80)
+    seuil_bruit = c.get('seuil_son', 50)
+    
+    # Si on est en heures silencieuses, on met les sons à 0, mais on envoie quand même les seuils
     if est_heure_silencieuse():
-        return f"{code_manuel}000"
+        return f"{code_manuel},0,0,0,{seuil_d},{seuil_bruit}"
         
-    return f"{code_manuel}{c.get('sonnerie_bouton', '2')}{c.get('sonnerie_infrarouge', '1')}{c.get('sonnerie_son', '0')}"
+    # Format normal : Manuel, Bouton, Infrarouge(Ultrason), Son, SeuilDistance, SeuilBruit
+    return f"{code_manuel},{son_b},{son_i},{son_s},{seuil_d},{seuil_bruit}"
 
 @app.get("/api/etat")
 def lire_etat():
