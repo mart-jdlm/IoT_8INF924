@@ -16,7 +16,7 @@ const int serverPort = 8000;
 
 // Mapping du matériel
 const int PIN_BOUTON = 2;
-const int PIN_ULTRASON = 3;
+const int PIN_ULTRASON = A2;
 const int PIN_SPEAKER = 4;
 const int PIN_SON = A1;
 
@@ -270,25 +270,13 @@ void jouerSirene(int type) {
 
 /**
  * Mesure la distance en cm pour un capteur ultrason DFRobot Gravity V1.0 (1 seul pin)
- */
 int mesurerDistance() {
-  // 1. On passe le pin en sortie et on envoie une impulsion de 10 microsecondes
-  pinMode(PIN_ULTRASON, OUTPUT);
-  digitalWrite(PIN_ULTRASON, LOW);
-  delayMicroseconds(2);
-  digitalWrite(PIN_ULTRASON, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(PIN_ULTRASON, LOW);
+  // Lecture de la tension envoyée par le capteur (entre 0 et 1023)
+  int valeurBrute = analogRead(PIN_ULTRASON);
   
-  // 2. On repasse le pin en entrée pour écouter l'écho
-  pinMode(PIN_ULTRASON, INPUT);
+  // Pour le capteur DFRobot URM09 Analogique, la conversion standard est :
+  // Distance max = 500 cm. La valeur 1023 correspond à 500 cm.
+  int distance = (valeurBrute * 500.0) / 1023.0; 
   
-  // pulseIn mesure le temps que met le pin à passer à HIGH puis revenir à LOW
-  // Le timeout de 35000 µs évite de bloquer l'Arduino si aucun objet n'est détecté
-  long duree = pulseIn(PIN_ULTRASON, HIGH, 35000); 
-  
-  if (duree == 0) return 999; // 0 signifie hors de portée (aucun écho reçu)
-  
-  // 3. Calcul de la distance (Vitesse du son = 340 m/s. L'onde fait un aller-retour)
-  return duree / 58; 
+  return distance;
 }
