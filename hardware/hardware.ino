@@ -16,11 +16,12 @@ const int serverPort = 8000;
 
 // Mapping du matériel
 const int PIN_BOUTON = 2;
-const int PIN_IR = 3;
+const int PIN_ULTRASON = 3;
 const int PIN_SPEAKER = 4;
 const int PIN_SON = A1;
 
 const int SEUIL_BRUIT = 200; // Sensibilité du capteur de son (0-1023)
+const int SEUIL_DISTANCE = 80;
 
 // ==========================================
 // ÉTAT DU SYSTÈME (TIMERS & MÉMOIRE)
@@ -86,13 +87,22 @@ void loop() {
     dernierEnvoiBouton = maintenant;
   }
 
-  // 2. Capteur : Mouvement Infrarouge
-  /*if (digitalRead(PIN_IR) == HIGH && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
-    Serial.println("🏃 Mouvement détecté !");
-    envoyerAlerte("infrarouge");
+  // 2. Capteur : Mouvement Ultrason
+  int distance = mesurerDistance();
+  
+  // Si un objet est détecté sous le seuil (et que la distance est valide)
+  if (distance > 0 && distance < SEUIL_DISTANCE && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
+    Serial.print("🏃 Intrusion détectée ! Distance : ");
+    Serial.print(distance);
+    Serial.println(" cm");
+    
+    // Tu peux garder "infrarouge" pour ne pas casser ton serveur web actuel, 
+    // ou le renommer en "ultrason" (mais il faudra modifier ton code Python/JS en conséquence)
+    envoyerAlerte("infrarouge"); 
     jouerSirene(sonIR);
+    
     dernierEnvoiIR = maintenant;
-  }*/
+  }
 
   // 3. Capteur : Bruit ambiant
   int niveauSonore = analogRead(PIN_SON);
@@ -248,4 +258,29 @@ void jouerSirene(int type) {
     tone(PIN_SPEAKER, 2000, 200);
     delay(200);
   }
+}
+
+/**
+ * Mesure la distance en cm pour un capteur ultrason DFRobot Gravity V1.0 (1 seul pin)
+ */
+int mesurerDistance() {
+  // 1. On passe le pin en sortie et on envoie une impulsion de 10 microsecondes
+  pinMode(PIN_ULTRASON, OUTPUT);
+  digitalWrite(PIN_ULTRASON, LOW);
+  delayMicroseconds(2);
+  digitalWrite(PIN_ULTRASON, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(PIN_ULTRASON, LOW);
+  
+  // 2. On repasse le pin en entrée pour écouter l'écho
+  pinMode(PIN_ULTRASON, INPUT);
+  
+  // pulseIn mesure le temps que met le pin à passer à HIGH puis revenir à LOW
+  // Le timeout de 35000 µs évite de bloquer l'Arduino si aucun objet n'est détecté
+  long duree = pulseIn(PIN_ULTRASON, HIGH, 35000); 
+  
+  if (duree == 0) return 999; // 0 signifie hors de portée (aucun écho reçu)
+  
+  // 3. Calcul de la distance (Vitesse du son = 340 m/s. L'onde fait un aller-retour)
+  return duree / 58; 
 }
