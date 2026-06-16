@@ -51,7 +51,7 @@ void setup() {
   Serial.begin(9600);
   
   pinMode(PIN_BOUTON, INPUT); 
-  pinMode(PIN_IR, INPUT);
+  pinMode(PIN_ULTRASON, INPUT);
   pinMode(PIN_SPEAKER, OUTPUT);
   pinMode(PIN_SON, INPUT);
 
