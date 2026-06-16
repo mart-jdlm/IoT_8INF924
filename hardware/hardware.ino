@@ -20,7 +20,7 @@ const int PIN_ULTRASON = 3;
 const int PIN_SPEAKER = 4;
 const int PIN_SON = A1;
 
-const int SEUIL_BRUIT = 200; // Sensibilité du capteur de son (0-1023)
+const int SEUIL_BRUIT = 50; // Sensibilité du capteur de son (0-1023)
 const int SEUIL_DISTANCE = 80;
 
 // ==========================================
@@ -33,7 +33,7 @@ unsigned long dernierEnvoiSon = 0;
 const unsigned long DELAI_COOLDOWN = 1000; 
 
 unsigned long dernierCheckAlarme = 0;
-const unsigned long DELAI_CHECK_ALARME = 4000; 
+const unsigned long DELAI_CHECK_ALARME = 1000; 
 
 // Configuration des alertes sonores (0: Silencieux, 1: Police, 2: Carillon, 3: Incendie)
 int sonBouton = 2;
@@ -77,6 +77,14 @@ void setup() {
 // ==========================================
 
 void loop() {
+  // --- DÉBUT DU BLOC DE TEST ---
+  int distanceBrute = mesurerDistance();
+  Serial.print("Test Capteur -> Valeur lue : ");
+  Serial.println(distanceBrute);
+  delay(500); // On ralentit pour avoir le temps de lire
+  return;     // On empêche le reste du code de s'exécuter pour l'instant
+  // --- FIN DU BLOC DE TEST ---
+  
   unsigned long maintenant = millis();
 
   // 1. Capteur : Bouton physique
