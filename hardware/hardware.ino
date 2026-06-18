@@ -33,7 +33,7 @@ unsigned long dernierEnvoiSon = 0;
 const unsigned long DELAI_COOLDOWN = 1000; 
 
 unsigned long dernierCheckAlarme = 0;
-const unsigned long DELAI_CHECK_ALARME = 1000; 
+const unsigned long DELAI_CHECK_ALARME = 2000; 
 
 // Configuration des alertes sonores (0: Silencieux, 1: Police, 2: Carillon, 3: Incendie)
 int sonBouton = 2;
@@ -89,8 +89,8 @@ void loop() {
 
   // 2. Capteur : Ultrason (remplace l'ancien Infrarouge)
   int distance = mesurerDistance();
-  // Si un objet est détecté à moins de 80cm (SEUIL_DISTANCE)
-  if (distance > 0 && distance < SEUIL_DISTANCE && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
+  // Si un objet est détecté à moins de 80cm (seuilDistance)
+  if (distance > 0 && distance < seuilDistance && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
     Serial.print("🏃 Intrusion détectée ! Distance : ");
     Serial.print(distance);
     Serial.println(" cm");
@@ -104,7 +104,7 @@ void loop() {
 
   // 3. Capteur : Bruit ambiant
   int niveauSonore = analogRead(PIN_SON);
-  if (niveauSonore > SEUIL_BRUIT && (maintenant - dernierEnvoiSon > DELAI_COOLDOWN)) {
+  if (niveauSonore > seuilBruit && (maintenant - dernierEnvoiSon > DELAI_COOLDOWN)) {
     Serial.print("🔊 Bruit fort détecté ! Niveau : ");
     Serial.println(niveauSonore);
     envoyerAlerte("son");

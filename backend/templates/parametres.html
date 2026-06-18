@@ -153,6 +153,8 @@
         document.getElementById('notif_infrarouge').checked = conf.notif_infrarouge;
         document.getElementById('notif_son').checked = conf.notif_son;
         document.getElementById('delai_anti_spam').value = conf.delai_anti_spam;
+        document.getElementById('seuil_distance').value = conf.seuil_distance || 80;
+        document.getElementById('seuil_son').value = conf.seuil_son || 50;
         
         document.getElementById('sonnerie_bouton').value = conf.sonnerie_bouton;
         document.getElementById('sonnerie_infrarouge').value = conf.sonnerie_infrarouge;
@@ -175,7 +177,8 @@
             notif_infrarouge: document.getElementById('notif_infrarouge').checked,
             notif_son: document.getElementById('notif_son').checked,
             delai_anti_spam: parseInt(document.getElementById('delai_anti_spam').value) || 0,
-            
+            seuil_distance: parseInt(document.getElementById('seuil_distance').value) || 80,
+            seuil_son: parseInt(document.getElementById('seuil_son').value) || 50,
             sonnerie_bouton: document.getElementById('sonnerie_bouton').value,
             sonnerie_infrarouge: document.getElementById('sonnerie_infrarouge').value,
             sonnerie_son: document.getElementById('sonnerie_son').value,
