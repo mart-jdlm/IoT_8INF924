@@ -123,7 +123,7 @@ Le câblage a été pensé pour être robuste et utilise la configuration suivan
 
 ### Aperçus des Schémas
 * **Schéma Électronique :**
-  ![Schéma Électronique](./images/Schematic.webp)
+  ![Schéma Électronique](./images/Schematic.png)
 
 * **Circuit Imprimé (Routage PCB double face) :**
   ![Circuit Imprimé (Vue 2D)](./images/PCB.webp).
