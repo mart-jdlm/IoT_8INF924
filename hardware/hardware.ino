@@ -28,7 +28,7 @@ int seuilDistance = 80;
 // ==========================================
 
 unsigned long dernierEnvoiBouton = 0;
-unsigned long dernierEnvoiIR = 0;
+unsigned long dernierEnvoiUltrason = 0;
 unsigned long dernierEnvoiSon = 0;
 const unsigned long DELAI_COOLDOWN = 1000; 
 
@@ -37,7 +37,7 @@ const unsigned long DELAI_CHECK_ALARME = 2000;
 
 // Configuration des alertes sonores (0: Silencieux, 1: Police, 2: Carillon, 3: Incendie)
 int sonBouton = 2;
-int sonIR = 1;
+int sonUltrason = 1;
 int sonSon = 0;
 
 WiFiClient client;
@@ -90,16 +90,16 @@ void loop() {
   // 2. Capteur : Ultrason (remplace l'ancien Infrarouge)
   int distance = mesurerDistance();
   // Si un objet est détecté à moins de 80cm (seuilDistance)
-  if (distance > 0 && distance < seuilDistance && (maintenant - dernierEnvoiIR > DELAI_COOLDOWN)) {
+  if (distance > 0 && distance < seuilDistance && (maintenant - dernierEnvoiUltrason > DELAI_COOLDOWN)) {
     Serial.print("🏃 Intrusion détectée ! Distance : ");
     Serial.print(distance);
     Serial.println(" cm");
     
     // On garde le mot "infrarouge" ici pour que ton site web (qui s'attend à ce mot) 
     // continue de l'afficher correctement sans devoir modifier tout le code Python/JS !
-    envoyerAlerte("infrarouge"); 
-    jouerSirene(sonIR);
-    dernierEnvoiIR = maintenant;
+    envoyerAlerte("ultrason"); 
+    jouerSirene(sonUltrason);
+    dernierEnvoiUltrason = maintenant;
   }
 
   // 3. Capteur : Bruit ambiant
@@ -191,7 +191,7 @@ void verifierAlarme() {
     if (id5 > 0) {
       char manuel = reponse.substring(0, id1).charAt(0);
       sonBouton = reponse.substring(id1 + 1, id2).toInt();
-      sonIR = reponse.substring(id2 + 1, id3).toInt();
+      sonUltrason = reponse.substring(id2 + 1, id3).toInt();
       sonSon = reponse.substring(id3 + 1, id4).toInt();
       seuilDistance = reponse.substring(id4 + 1, id5).toInt();
       seuilBruit = reponse.substring(id5 + 1).toInt();

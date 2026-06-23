@@ -30,7 +30,7 @@ def verifier_admin(request: Request):
 class SourceCapteur(str, Enum):
     """Liste stricte des capteurs autorisés pour la validation des requêtes."""
     bouton = "bouton"
-    infrarouge = "infrarouge"
+    ultrason = "ultrason"
     son = "son"
 
 app = FastAPI(title="API Sonnette Intelligente")
@@ -50,7 +50,7 @@ etat_systeme = {
     "alarme_code": "0", 
     "config": {
         "notif_bouton": True,
-        "notif_infrarouge": True,
+        "notif_ultrason": True,
         "notif_son": False,
         "heures_silencieuses_debut": "22:00",
         "heures_silencieuses_fin": "07:00",
@@ -65,11 +65,11 @@ etat_systeme = {
         
         # --- MISE À JOUR DES PROFILS SONORES ---
         "sonnerie_bouton": "4",      # 4 = Pièce Mario par défaut
-        "sonnerie_infrarouge": "6",  # 6 = Robotique par défaut
+        "sonnerie_ultrason": "6",  # 6 = Robotique par défaut
         "sonnerie_son": "0",         # 0 = Silencieux par défaut
         
         "msg_bouton": "Quelqu'un a sonné à la porte !",
-        "msg_infrarouge": "Mouvement suspect détecté !",
+        "msg_ultrason": "Mouvement suspect détecté !",
         "msg_son": "Bruit anormal entendu !"
     }
 }
@@ -192,7 +192,7 @@ def check_alarme(x_api_key: str = Header(None)):
     
     # Récupération sécurisée avec valeurs par défaut
     son_b = c.get('sonnerie_bouton', '2')
-    son_i = c.get('sonnerie_infrarouge', '1')
+    son_u = c.get('sonnerie_ultrason', '1')
     son_s = c.get('sonnerie_son', '0')
     seuil_d = c.get('seuil_distance', 80)
     seuil_bruit = c.get('seuil_son', 50)
@@ -201,8 +201,8 @@ def check_alarme(x_api_key: str = Header(None)):
     if est_heure_silencieuse():
         return f"{code_manuel},0,0,0,{seuil_d},{seuil_bruit}"
         
-    # Format normal : Manuel, Bouton, Infrarouge(Ultrason), Son, SeuilDistance, SeuilBruit
-    return f"{code_manuel},{son_b},{son_i},{son_s},{seuil_d},{seuil_bruit}"
+    # Format normal : Manuel, Bouton, Ultrason, Son, SeuilDistance, SeuilBruit
+    return f"{code_manuel},{son_b},{son_u},{son_s},{seuil_d},{seuil_bruit}"
 
 @app.get("/api/etat")
 def lire_etat():

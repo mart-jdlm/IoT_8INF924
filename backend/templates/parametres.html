@@ -43,8 +43,8 @@
                 <label class="switch"><input type="checkbox" id="notif_bouton" onchange="sauvegarderConfig()"><span class="slider"></span></label>
             </div>
             <div class="setting-row">
-                <div class="setting-label"><strong>Infrarouge (PIR)</strong><span class="setting-desc">Activer la détection de mouvement</span></div>
-                <label class="switch"><input type="checkbox" id="notif_infrarouge" onchange="sauvegarderConfig()"><span class="slider"></span></label>
+                <div class="setting-label"><strong>Capteur Ultrason</strong><span class="setting-desc">Activer la détection de mouvement</span></div>
+                <label class="switch"><input type="checkbox" id="notif_ultrason" onchange="sauvegarderConfig()"><span class="slider"></span></label>
             </div>
             <div class="setting-row">
                 <div class="setting-label"><strong>Capteur Sonore</strong><span class="setting-desc">Activer la détection de bruit</span></div>
@@ -85,8 +85,8 @@
         </div>
 
         <div class="sensor-box">
-            <div class="sensor-header" style="color: var(--accent-orange);">🏃 Action Infrarouge</div>
-            <select id="sonnerie_infrarouge" onchange="sauvegarderConfig()">
+            <div class="sensor-header" style="color: var(--accent-orange);">🏃 Action Ultrason</div>
+            <select id="sonnerie_ultrason" onchange="sauvegarderConfig()">
                 <option value="0">🔇 Silencieux</option>
                 <option value="1">🚓 Alarme de Police</option>
                 <option value="2">🔔 Carillon Classique</option>
@@ -95,7 +95,7 @@
                 <option value="5">🗡️ Secret Zelda</option>
                 <option value="6">🤖 Démarrage Sci-Fi</option>
             </select>
-            <input type="text" id="msg_infrarouge" placeholder="Message Discord personnalisé" onchange="sauvegarderConfig()">
+            <input type="text" id="msg_ultrason" placeholder="Message Discord personnalisé" onchange="sauvegarderConfig()">
         </div>
 
         <div class="sensor-box">
@@ -150,17 +150,17 @@
         const conf = data.config;
 
         document.getElementById('notif_bouton').checked = conf.notif_bouton;
-        document.getElementById('notif_infrarouge').checked = conf.notif_infrarouge;
+        document.getElementById('notif_ultrason').checked = conf.notif_ultrason;
         document.getElementById('notif_son').checked = conf.notif_son;
         document.getElementById('delai_anti_spam').value = conf.delai_anti_spam;
         document.getElementById('seuil_distance').value = conf.seuil_distance || 80;
         document.getElementById('seuil_son').value = conf.seuil_son || 50;
         
         document.getElementById('sonnerie_bouton').value = conf.sonnerie_bouton;
-        document.getElementById('sonnerie_infrarouge').value = conf.sonnerie_infrarouge;
+        document.getElementById('sonnerie_ultrason').value = conf.sonnerie_ultrason;
         document.getElementById('sonnerie_son').value = conf.sonnerie_son;
         document.getElementById('msg_bouton').value = conf.msg_bouton;
-        document.getElementById('msg_infrarouge').value = conf.msg_infrarouge;
+        document.getElementById('msg_ultrason').value = conf.msg_ultrason;
         document.getElementById('msg_son').value = conf.msg_son;
 
         document.getElementById('mode_vacances').checked = conf.mode_vacances;
@@ -174,16 +174,16 @@
     async function sauvegarderConfig() {
         const nouvelleConfig = {
             notif_bouton: document.getElementById('notif_bouton').checked,
-            notif_infrarouge: document.getElementById('notif_infrarouge').checked,
+            notif_ultrason: document.getElementById('notif_ultrason').checked,
             notif_son: document.getElementById('notif_son').checked,
             delai_anti_spam: parseInt(document.getElementById('delai_anti_spam').value) || 0,
             seuil_distance: parseInt(document.getElementById('seuil_distance').value) || 80,
             seuil_son: parseInt(document.getElementById('seuil_son').value) || 50,
             sonnerie_bouton: document.getElementById('sonnerie_bouton').value,
-            sonnerie_infrarouge: document.getElementById('sonnerie_infrarouge').value,
+            sonnerie_ultrason: document.getElementById('sonnerie_ultrason').value,
             sonnerie_son: document.getElementById('sonnerie_son').value,
             msg_bouton: document.getElementById('msg_bouton').value,
-            msg_infrarouge: document.getElementById('msg_infrarouge').value,
+            msg_ultrason: document.getElementById('msg_ultrason').value,
             msg_son: document.getElementById('msg_son').value,
             
             mode_vacances: document.getElementById('mode_vacances').checked,

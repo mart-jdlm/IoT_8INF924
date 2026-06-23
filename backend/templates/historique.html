@@ -34,7 +34,7 @@
         <select id="filter-source" onchange="appliquerFiltres()">
             <option value="tout">Tous les événements</option>
             <option value="bouton">🔘 Bouton Manuel</option>
-            <option value="infrarouge">🏃 Mouvement Infrarouge</option>
+            <option value="ultrason">🏃 Mouvement Ultrason</option>
             <option value="son">🔊 Détection Sonore</option>
         </select>
     </div>
@@ -100,7 +100,7 @@
 
             if (correspondDate && correspondSource) {
                 compteur++;
-                let nomAffiche = event.source === 'bouton' ? 'Bouton Manuel' : (event.source === 'infrarouge' ? 'Mouvement IR' : 'Détection Sonore');
+                let nomAffiche = event.source === 'bouton' ? 'Bouton Manuel' : (event.source === 'ultrason' ? 'Mouvement Ultrason' : 'Détection Sonore');
                 html += `<tr>
                             <td><span class="tag tag-${event.source}">${nomAffiche}</span></td>
                             <td class="time-text" style="text-align: right;">${event.heure.substring(0, 19)}</td>

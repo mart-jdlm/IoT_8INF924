@@ -109,7 +109,7 @@
             document.getElementById('kpi-jour').innerText = data.total_jour;
             document.getElementById('kpi-dernier').innerText = data.dernier_event.substring(11, 19) || "Rien";
             
-            const nomsFormat = {"bouton": "Bouton Manuel", "infrarouge": "Infrarouge (PIR)", "son": "Capteur Sonore"};
+            const nomsFormat = {"bouton": "Bouton Manuel", "ultrason": "Capteur Ultrason", "son": "Capteur Sonore"};
             document.getElementById('kpi-dernier-source').innerText = nomsFormat[data.derniere_source] || "-";
             document.getElementById('kpi-top').innerText = nomsFormat[data.top_capteur] || "Aucun";
         } catch (e) {}
@@ -122,7 +122,7 @@
             const donnees = await reponse.json();
             let html = '';
             donnees.forEach(event => {
-                let emoji = event.source === 'bouton' ? '🔘' : (event.source === 'infrarouge' ? '🏃' : '🔊');
+                let emoji = event.source === 'bouton' ? '🔘' : (event.source === 'ultrason' ? '🏃' : '🔊');
                 html += `<li>
                             <span>${emoji} ${event.source.toUpperCase()}</span>
                             <span style="color: var(--text-muted); font-family: monospace;">${event.heure.substring(11, 19)}</span>
@@ -142,7 +142,7 @@
             
             const couleurs = labels.map(label => {
                 if(label === 'bouton') return '#3b82f6'; 
-                if(label === 'infrarouge') return '#f59e0b'; 
+                if(label === 'ultrason') return '#f59e0b'; 
                 if(label === 'son') return '#8b5cf6'; 
                 return '#334155';
             });
